@@ -14,7 +14,6 @@ Next, activate the virtual environment and install the requirements:
 
 ```
 source .venv/bin/activate
-pip install -r functions/embed_and_index/requirements.txt
 ```
 
 To build and deploy the application use the following two SAM CLI commands
