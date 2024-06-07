@@ -1,17 +1,84 @@
-## My Project
+# Traffic light based machine transalation review using generative AI LLM models
 
-TODO: Fill this README out!
+## Setup
 
-Be sure to:
+To set up this project the following requirements are needed:
 
-* Change the title in this README
-* Edit your repository description on GitHub
+- Python 3.10
+- AWS SAM CLI
+- NPM
 
-## Security
+Create a python virtual environment first with `python3.10 -m venv .venv`
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+Next, activate the virtual environment and install the requirements:
 
-## License
+```
+source .venv/bin/activate
+pip install -r functions/embed_and_index/requirements.txt
+```
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+To build and deploy the application use the following two SAM CLI commands
 
+```
+sam build --template template.yaml
+sam deploy --guided --profile <AWS_PROFILEs>
+```
+
+This will first build the package for the application and create a `.aws-sam` folder locally.
+The guided deploy will allow you to set and save some parameters for future deployments.
+
+# Configure UI
+
+1. Open Cloudformation - goto "bedrock-traffic-light" stack and open the "Outputs" tab
+
+2. Edit app/src/aws-exports file and replace the values of below config variables by referring to the output details from step 1 .
+
+```bash
+aws_appsync_graphqlEndpoint
+aws_cognito_identity_pool_id
+aws_user_files_s3_bucket
+aws_user_pools_id
+aws_user_pools_web_client_id
+```
+
+2. Create user in Amazon Cognito.
+
+Open Amazon Cognito in AWS console and locate user pool created something like "UserPool-xxx". Under Users tab, select create user and follow the steps to setup your account for UI.
+
+# Build UI package
+
+To build the front end locally run:
+
+```
+cd ui
+npm install
+npm run build
+```
+
+Once completed, from with the `ui` directory, run
+
+```
+npm run dev
+```
+
+# Deploy App using AWS Amplify hosting
+
+1. Login to AWS console and select AWS Amplify service
+2. Select host web app in new app dropdown button
+3. Choose "Deploy without git provider" under Amplify hosting and select continue button
+4. Give name to you webapp, then upload ui.zip file or (select all files from dist folder if not zipped) from app/dist folder and select "Save and deploy" button
+5. Use the app url generated under domain field to launch it and follow the steps to login using user created in previous section.
+
+# Clean up
+
+To avoid incurring future charges, please clean up the resources created.
+
+## Remove the stack
+
+```
+sam delete <stack name>
+```
+
+## Remove Amplify hosting
+
+Open AWS Amplify in AWS console and select "delete app" action for your amplify hosting.

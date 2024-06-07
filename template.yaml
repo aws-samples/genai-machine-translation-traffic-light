@@ -1,0 +1,171 @@
+#Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Transform: AWS::Serverless-2016-10-31
+
+Metadata:
+  cfn_nag:
+    rules_to_suppress:
+      - id: W68
+        reason: Access logging not required.
+
+Globals:
+  Api:
+    Cors:
+      AllowMethods: "'OPTIONS,POST'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+    Auth:
+      ApiKeyRequired: False
+      DefaultAuthorizer: AWS_IAM
+      AddDefaultAuthorizerToCorsPreflight: False
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    #checkov:skip=CKV_AWS_18: Ensure the S3 bucket has access logging enabled
+    #checkov:skip=CKV_AWS_21: Ensure the S3 bucket has versioning enabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Access logging not required.
+          - id: W41
+            reason: Encryption not required.
+          - id: W51
+            reason: Bucket policy not required.
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: True
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - PUT
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - x-amz-server-side-encryption
+              - x-amz-request-id
+              - x-amz-id-2
+              - ETag
+            MaxAge: 300
+
+  PromptTable:
+    Type: AWS::DynamoDB::Table
+    #checkov:skip=CKV_AWS_116: Ensure that AWS Lambda function is configured for a Dead Letter Queue(DLQ)
+    #checkov:skip=CKV_AWS_119: Ensure DynamoDB Tables are encrypted using a KMS Customer Managed CMK
+    #checkov:skip=CKV_AWS_28: Ensure Dynamodb point in time recovery (backup) is enabled
+    Properties:
+      TableName: prompt-table
+      AttributeDefinitions:
+        - AttributeName: prompt-id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: prompt-id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: True
+
+  QualityAssessmentFunction:
+    Type: AWS::Serverless::Function
+    #checkov:skip=CKV_AWS_116: Ensure that AWS Lambda function is configured for a Dead Letter Queue(DLQ)
+    #checkov:skip=CKV_AWS_117: Ensure that AWS Lambda function is configured inside a VPC
+    #checkov:skip=CKV_AWS_115: Ensure that AWS Lambda function is configured for function-level concurrent execution limit
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: VPC not required.
+          - id: W92
+            reason: Reserved concurrency not required.
+          - id: F3
+            reason: PoC Only.
+    Properties:
+      CodeUri: ./functions/quality_assessment
+      Handler: quality_assessment.lambda_handler
+      Runtime: python3.10
+      Timeout: 300
+      MemorySize: 128
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:provisoned-model/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:* # TODO: Fix this
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*"
+      Events:
+        POST:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /
+
+  AuthStack:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      TemplateURL: auth.yaml
+
+  AuthApiPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !GetAtt AuthStack.Outputs.AuthRoleName
+      PolicyName: AppPermissions
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - execute-api:Invoke
+            Resource:
+              - !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/Prod/POST/"
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt QualityAssessmentFunction.Arn
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub "${Bucket.Arn}/uploads/*"
+
+Outputs:
+  Region:
+    Value: !Ref AWS::Region
+
+  IdentityPoolId:
+    Value: !GetAtt AuthStack.Outputs.IdentityPoolId
+
+  S3Bucket:
+    Value: !Ref Bucket
+
+  UserPoolsId:
+    Value: !GetAtt AuthStack.Outputs.UserPoolId
+
+  UserPoolsWebClientId:
+    Value: !GetAtt AuthStack.Outputs.AppClientIDWeb
+
+  Endpoint:
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod
