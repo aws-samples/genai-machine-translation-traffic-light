@@ -55,18 +55,14 @@ npm install
 npm run build
 ```
 
-Once completed, from with the `ui` directory, run
-
-```
-npm run dev
-```
+Go to dist folder under ui folder and manually select all files and create a zip file. You can rename it as ui.zip
 
 # Deploy App using AWS Amplify hosting
 
 1. Login to AWS console and select AWS Amplify service
 2. Select host web app in new app dropdown button
 3. Choose "Deploy without git provider" under Amplify hosting and select continue button
-4. Give name to you webapp, then upload ui.zip file or (select all files from dist folder if not zipped) from app/dist folder and select "Save and deploy" button
+4. Give name to you webapp, then upload ui.zip file or (select all files from dist folder if not zipped) from ui/dist folder and select "Save and deploy" button
 5. Use the app url generated under domain field to launch it and follow the steps to login using user created in previous section.
 
 # Clean up
