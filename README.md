@@ -1,30 +1,35 @@
 # Traffic light based machine transalation review using generative AI LLM models
 
+This repository contains a code sample that deploys an application that can perform the quality assessment of translated sentences from some common language pairs. The application takes a source sentence and it's translated counterpart and uses a Large Language Model to perform some quality assessment and provide a red, amber or green rating. The application will also render the LLM's reasoning as well as a list of errors it identifies. The intended use of this application is to assess the quality of machine translated models for common language pairs where a green rating needs no human intervention. A amber rating requires some corrections but the intent of the sentence is maintained in the translation. A red rating identifies poor quality translations that are not usable or change the meaning of the source sentence. 
+
+This application is intended to showcase some of the interesting abilities of multi-lingual LLMs and is not intended to be a production ready system.
+
 ## Setup
 
 To set up this project the following requirements are needed:
 
-- Python 3.10
+- Python 3.12
 - AWS SAM CLI
 - NPM
 
-Create a python virtual environment first with `python3.10 -m venv .venv`
+Create a python virtual environment first with `python3.12 -m venv .venv`
 
 Next, activate the virtual environment and install the requirements:
 
 ```
 source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 To build and deploy the application use the following two SAM CLI commands
 
 ```
 sam build --template template.yaml
-sam deploy --guided --profile <AWS_PROFILEs>
+sam deploy --guided --profile <AWS_PROFILE>
 ```
 
 This will first build the package for the application and create a `.aws-sam` folder locally.
-The guided deploy will allow you to set and save some parameters for future deployments.
+The guided deploy will allow you to set and save parameters for future deployments.
 
 # Configure UI
 
