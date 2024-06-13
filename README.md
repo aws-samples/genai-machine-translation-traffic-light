@@ -119,7 +119,7 @@ To avoid incurring future charges, please clean up the resources created.
 ### Remove the stack
 
 ```bash
-sam delete <stack name>
+sam delete $STACK_NAME
 ```
 
 ### Remove Amplify hosting
