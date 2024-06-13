@@ -81,6 +81,35 @@ Resources:
       SSESpecification:
         SSEEnabled: True
 
+  DynamoDBUploadResource:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dyanmodb_upload.handler
+      CodeUri: ./custom_resources/dynamodb_upload
+      Tracing: Active
+      MemorySize: 512
+      Runtime: python3.12
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          DDBTableName: !Select [1, !Split ['/', !GetAtt PromptTable.Arn]] 
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt PromptTable.Arn
+
+  DynamoDBUpload:
+    Type: Custom::DynamoDBUploadResource
+    Properties:
+      ServiceTimeout: 120
+      ServiceToken: !GetAtt DynamoDBUploadResource.Arn
+
   QualityAssessmentFunction:
     Type: AWS::Serverless::Function
     #checkov:skip=CKV_AWS_116: Ensure that AWS Lambda function is configured for a Dead Letter Queue(DLQ)
@@ -98,9 +127,10 @@ Resources:
     Properties:
       CodeUri: ./functions/quality_assessment
       Handler: quality_assessment.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.12
       Timeout: 300
       MemorySize: 128
+      ReservedConcurrentExecutions: 1
       Policies:
         - Version: 2012-10-17
           Statement:
@@ -109,9 +139,14 @@ Resources:
                 - bedrock:*
               Resource: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:provisoned-model/*"
             - Effect: Allow
-              Action:
-                - dynamodb:* # TODO: Fix this
-              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*"
+              Action: 
+                - dynamodb:GetItem
+                - dynamodb:Scan
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt PromptTable.Arn
       Events:
         POST:
           Type: Api
