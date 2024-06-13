@@ -1,9 +1,11 @@
 import logging
 import os
-import cfnresponse
 
 import boto3
+import cfnresponse
+
 from crhelper import CfnResource
+
 
 helper = CfnResource(json_logging=False, log_level="DEBUG", boto_level="CRITICAL")
 

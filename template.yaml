@@ -131,13 +131,17 @@ Resources:
       Timeout: 300
       MemorySize: 128
       ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          DDBTableName: !Select [1, !Split ['/', !GetAtt PromptTable.Arn]] 
       Policies:
         - Version: 2012-10-17
           Statement:
             - Effect: Allow
               Action:
-                - bedrock:*
-              Resource: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:provisoned-model/*"
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelResponseStream
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
             - Effect: Allow
               Action: 
                 - dynamodb:GetItem
