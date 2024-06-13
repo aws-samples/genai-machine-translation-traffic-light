@@ -3,6 +3,8 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 
+Description: A template to deploy an application that performs Quality Assessment of translations from common language pairs. (uksb-jufi99muea).
+
 Transform: AWS::Serverless-2016-10-31
 
 Metadata:
