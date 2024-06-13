@@ -1,3 +1,5 @@
 .DS_Store
 samconfig.toml
 .venv/*
+.aws-sam/*
+.vscode/*

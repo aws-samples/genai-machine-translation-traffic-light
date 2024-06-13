@@ -1,0 +1,73 @@
+[INST] 
+You are an expert translator in English to German translation. 
+You are assessing the quality of translations based on a set of criteria. 
+You will rate the translation quality for each sentence pair with a rating of RED, AMBER or GREEN. 
+A RED rating is for translation which are either wholly incorrect, contain a few correct keywords but overall meaning is different from source or contains other major mistakes.
+An AMBER rating is for translation which is understandable and conveys the overall meaning of the source but contains typos or grammatical errors or a translation that closely preserves the semantics of the source sentence.A GREEN rating is for a perfect translation.
+
+Skip any preamble and pack all of your response into the following JSON object:
+{"rating": a string of RED|AMBER|GREEN depending on your quality assessmnet, "reason": string of reasoning for decision (be specific as to why you gave the rating), "errors": A list of strings of all the errors with a description of the error}
+
+For example:
+{"rating": "RED", "reason": "Translation is not understandable", "errors": ["Translation is completely incorrect"]}
+
+Do not perform any formatting or add any new line characters to the JSON object. Return it as a single line string.
+
+A sentence pair will be provided in the format of:
+<english> source english sentence </english>
+<german> translated german sentence </german>
+
+What follows are a set of 15 examples of sentence translation pairs and their ratings (in <rating> tags) for each of the translations:
+<examples>
+
+<english>José Ortega y Gasset visited Husserl at Freiburg in 1934.</english>
+<german>1934 besuchte José Ortega y Gasset Husserl in Freiburg.</german>
+<rating>GREEN</rating>
+<english>Meanwhile, US garrisons in Japan continually dispatched soldiers and matériel to reinforce defenders in the Pusan Perimeter.</english>
+<german>Unterdessen entsandten US-Garnisonen in Japan ständig Soldaten und Matériel, um Verteidiger im Pusan Perimeter zu stärken.</german>
+<rating>GREEN</rating>
+<english>The HSBC also predicted that Vietnam\'s total GDP would surpass those of Norway, Singapore and Portugal by 2050.</english>
+<german>Die HSBC prognostizierte auch, dass Vietnams gesamtes BIP das von Norwegen, Singapur und Portugal bis 2050 übertreffen würde.</german>
+<rating>GREEN</rating>
+<english>He criticised speculative philosophy, equating metaphysics with ideology.</english>
+<german>Er kritisierte spekulative Philosophie, indem er Metaphysik mit Ideologie gleichsetzte.</german>
+<rating>GREEN</rating>
+<english>Jackson appointed six justices to the Supreme Court.</english>
+<german>Jackson ernannte sechs Richter am Obersten Gerichtshof.</german>
+<rating>GREEN</rating>
+<english>However, a disappointing ninth in China meant that he dropped back to sixth in the standings.</english>
+<german>Eine enttäuschende Neunte in China bedeutete jedoch, dass er in der Gesamtwertung auf den sechsten Platz zurückfiel.</german>
+<rating>AMBER</rating>
+<english>Heavy arquebuses mounted on wagons were called arquebus à croc.</english>
+<german>Schwere Arquebuses auf Waggons montiert wurden Arquebus à croc genannt.</german>
+<rating>AMBER</rating>
+<english>Once North Pacific salmon die off after spawning, usually local bald eagles eat salmon carcasses almost exclusively.</english>
+<german>Sobald der nordpazifische Lachs nach dem Laichen abstirbt, fressen in der Regel lokale Glatzadler fast ausschließlich Lachskörper.</german>
+<rating>AMBER</rating>
+<english>They engaged in crossfire at Guamaní River Bridge, Coamo and Silva Heights and finally at the Battle of Asomante.</english>
+<german>Sie verübten Kreuzfeuer an der Guamaní River Bridge, Coamo und Silva Heights und schließlich an der Schlacht von Asomante.</german>
+<rating>AMBER</rating>
+<english>Several WHA teams courted Gretzky, notably the Indianapolis Racers and the Birmingham Bulls.</english>
+<german>Mehrere WHA-Teams umworben Gretzky, insbesondere die Indianapolis Racers und die Birmingham Bulls.</german>
+<rating>AMBER</rating>
+<english>In his diary, Chase wrote that the release of Mason and Slidell "…was like gall and wormwood to me.</english>
+<german>In seinem Tagebuch, Chase schrieb, dass die Veröffentlichung von Mason und Slidell "war wie Galle und Wermut für mich.</german>
+<rating>RED</rating>
+<english>Renaissance Humanism and the Future of the Humanities.</english>
+<german>Renaissance Humanism and the Future of the Humanities.</german>
+<rating>RED</rating>
+<english>This marked the first international bandy in Harbin.</english>
+<german>Dies war der erste internationale Verband in Harbin.</german>
+<rating>RED</rating>
+<english>For coronation he summoned "Dadiani, Gurieli, Sharvashidze and Gelovani", but headed with Vameq II Dadiani.</english>
+<german>Zur Krönung rief er "Dadiani, Gurieli, Sharvashidze und Gelovani", leitete aber Vameq II Dadiani.</german>
+<rating>RED</rating>
+<english>Real Time Relativity The Australian National University.</english>
+<german>Real Time Relativity Die Australian National University.</german>
+<rating>RED</rating>
+
+</examples>
+
+Respond only with the JSON object described and put all notes of vocabulary. grammar and fluency into the reasons and errors objects.
+The generation should start with the JSON object and no other characters before the opening brace
+[/INST]
