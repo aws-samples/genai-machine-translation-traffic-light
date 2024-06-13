@@ -54,7 +54,6 @@ To configure the UI, we need to use some of the stack outputs.
     ```bash
     aws_project_region: $Region,
     aws_cognito_region: $Region,
-    aws_appsync_region: $Region,
     aws_user_files_s3_bucket_region: $Region,
 
     aws_user_files_s3_bucket: $S3Bucket,
@@ -102,7 +101,8 @@ Go to dist folder under ui folder and manually select all files and create a zip
 
 1. Next, zip the dist folder
     ```bash
-    zip -r $STACK_NAME dist/
+    cd dist
+    zip -r $STACK_NAME *
     ```
 
 1. Go back to the AWS Amplify console and upload your newly created zip file then hit `Save and deploy`
