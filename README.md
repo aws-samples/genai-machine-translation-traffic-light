@@ -8,7 +8,27 @@ This application is intended to showcase some of the interesting abilities of mu
 
 ## Setup
 
-To set up this project the following requirements are needed:
+### Prerequisites
+
+To deploy this application we need an AWS account with access to Bedrock specific Bedrock models. To enable the necessary models follow these steps:
+
+1. Log in to the AWS Console for the account you will be using. 
+
+1. [Switch to a region that Bedrock is available in](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
+
+1. Navigate to Bedrock on the console and from the drop down menu go to `Model access`
+
+1. Select `Modify model access` 
+
+1. From the list of base models select:
+    * Claude 3 Sonnet 
+    * Llama Chat 70B
+
+1. Check the terms and conditions of both models and that your usage will be within these.
+
+1. Click `Next` Access should be granted immediately. If access is not granted within a few minutes, contact AWS Support.
+
+#### Local Development and Build Requirements and Steps
 
 - [Python 3.12](https://www.python.org/downloads/release/python-3120/)
 - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
