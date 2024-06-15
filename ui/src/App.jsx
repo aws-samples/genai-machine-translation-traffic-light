@@ -73,7 +73,7 @@ const App = ({ signOut }) => {
         return item
       }
     })
-    const response = await API.post("api", "/evaluate-translation", { body: { promptView }, headers: { "Content-Type": "text/plain" } });
+    const response = await API.post("api", "/update-prompt", { body: { promptView }, headers: { "Content-Type": "text/plain" } });
     console.log("`Updated Prompt List: ", newPromptList);
     setPromptList(newPromptList)
   }

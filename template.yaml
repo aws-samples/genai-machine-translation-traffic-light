@@ -165,7 +165,7 @@ Resources:
           Type: Api
           Properties:
             Method: POST
-            Path: /update-prompt/{prompt-id}
+            Path: /update-prompt
         EvaluateTranslation:
           Type: Api
           Properties:
