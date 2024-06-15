@@ -41,13 +41,13 @@ const App = ({ signOut }) => {
   const [errors, setErrors] = useState([]);
   const [promptList, setPromptList] = useState([]);
   const [promptView, setPromptView] = useState({label: "Select a Prompt", value: "" });
-  const [promptText, setPromptText] = useState("")
+  const [promptText, setPromptText] = useState("");
 
 
   const submitQuery = async () => {
     try {
       setIsSubmitting(true);
-      const response = await API.post("api", "/", { body: { source, translation, llm, language, temperature }, headers: { "Content-Type": "text/plain" } });
+      const response = await API.post("api", "/evaluate-translation", { body: { source, translation, llm, language, temperature }, headers: { "Content-Type": "text/plain" } });
       const parsedResponse = JSON.parse(response);
 
       console.log("Raw Response: ", response);
@@ -65,13 +65,30 @@ const App = ({ signOut }) => {
     }
   }
 
+  const submitPromptUpdate = async () => {
+    const newPromptList = promptList.map((item) => {
+      if (item.label === promptView.label) {
+        return { label: promptView.label, value: promptView.value }
+      } else {
+        return item
+      }
+    })
+    const response = await API.post("api", "/", { body: { promptView }, headers: { "Content-Type": "text/plain" } });
+    console.log("`Updated Prompt List: ", newPromptList);
+    setPromptList(newPromptList)
+  }
+
   useEffect(() => {
     const fetchData = async () => {
-    const promptResponse = await API.post("api", "/");
-    const promptListItems = promptResponse.items
+    const promptResponse = await API.get("api", "/get-all-prompts");
+    const promptListItems = Object.values(promptResponse.prompts);
+    let promptIDs = promptListItems.map(item => {
+      return {label: item.label, value: item.value};
+    })
     console.log("Raw Prompt Response: ", promptResponse);
     console.log("Prompt List: ", promptListItems);
-    setPromptList(promptListItems)
+    console.log("Prompt IDs: ", promptIDs);
+    setPromptList(promptIDs)
     }
     fetchData()
     }, [])
@@ -87,13 +104,15 @@ const App = ({ signOut }) => {
             <SpaceBetween direction="horizontal" size="xs">
               <Button 
                 variant="link"
-                onClick={() => {setVisible(false)}}
+                onClick={() => {setPromptView(""),
+                setVisible(false)}}
               >
                 Cancel
               </Button>
               <Button 
                 variant="primary"
-                onClick={() => {setVisible(false)}}
+                onClick={() => {submitPromptUpdate(), 
+                  setVisible(false)}}
               >
                 Save
               </Button>
@@ -117,7 +136,7 @@ const App = ({ signOut }) => {
           </TextContent>
           <Textarea
             rows={40}
-            onChange={({ detail }) => setPromptText(detail)}
+            onChange={({ detail }) => setPromptView({...promptView, value:detail.value })}
             value={promptView.value}
             placeholder="Prompt..."
             disableBrowserSpellcheck

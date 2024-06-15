@@ -8,9 +8,17 @@ import os
 import boto3
 from botocore.config import Config
 
+from aws_lambda_powertools import Logger, Tracer
+from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
+from aws_lambda_powertools.logging import correlation_paths
+from aws_lambda_powertools.utilities.typing import LambdaContext
+# logger = logging.getLogger()
+# logger.setLevel(os.getenv("LogLevel", logging.INFO))
 
-logger = logging.getLogger()
-logger.setLevel(os.getenv("LogLevel", logging.INFO))
+tracer = Tracer()
+logger = Logger()
+cors_config = CORSConfig(allow_origin="*", allow_headers=["x-test"], max_age=300)
+app = APIGatewayRestResolver(cors=cors_config)
 
 BEDROCK_RUNTIME = boto3.client('bedrock-runtime')
 DYNAMO_CLIENT = boto3.client('dynamodb')
@@ -145,7 +153,9 @@ def generate_message(bedrock_runtime: boto3.client,
     return response_body
 
 
-def get_prompt_list() -> list[dict]:
+@app.get("/get-all-prompts")
+@tracer.capture_method
+def get_all_prompts() -> list[dict]:
 
     """
     A function to retrieve the list of stored prompts from DynamoDB
@@ -161,83 +171,91 @@ def get_prompt_list() -> list[dict]:
     for item in prompt_list:
         new_item = {"label": item["prompt-id"]["S"], "value": item["prompt"]["S"]}
         prompt_output_list.append(new_item)
-    return prompt_output_list
+    return {"prompts": prompt_output_list}
 
 
-def lambda_handler(event, context) -> dict:
+@logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_REST)
+@tracer.capture_lambda_handler
+def lambda_handler(event, context):
+    return app.resolve(event, context)
 
-    """
-    The lambda handler function for the quality assessment lambda function
 
-    :param event: A dictionary containing the event data
-    :param context: A dictionary containing the context data
+    # """
+    # The lambda handler function for the quality assessment lambda function
+
+    # :param event: A dictionary containing the event data
+    # :param context: A dictionary containing the context data
     
-    :returns: A dictionary containing the response data
-    """
+    # :returns: A dictionary containing the response data
+    # """
 
-    try:
-        logging.info(f"Event: {event}")
-        if event["body"] is None:
-            prompt_output_list = get_prompt_list()
 
-            logger.info(f'Prompt List: {prompt_output_list}')
-            return {"statusCode": 200,  # TODO: Error handling
-                    "headers": {
-                        "Access-Control-Allow-Origin": "*",
-                        "Access-Control-Allow-Headers": "*",
-                        "Access-Control-Allow-Methods": "*",
-                        "Content-Type": "application/json"
-                    }, 
-                    "body": json.dumps({"items": prompt_output_list})}
+    # try:
+    #     logging.info(f"Event: {event}")
+    #     body = json.loads(event["body"])
+    #     if event["body"] is None:
+    #         prompt_output_list = get_all_prompts()
+
+    #         logger.info(f'Prompt List: {prompt_output_list}')
+    #         return {"statusCode": 200,  # TODO: Error handling
+    #                 "headers": {
+    #                     "Access-Control-Allow-Origin": "*",
+    #                     "Access-Control-Allow-Headers": "*",
+    #                     "Access-Control-Allow-Methods": "*",
+    #                     "Content-Type": "application/json"
+    #                 }, 
+    #                 "body": json.dumps({"items": prompt_output_list})}
+    #     elif "prompt-id" in body.keys():
+    #         temperature = body["temperature"]
         
-        model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'
-        body = json.loads(event["body"])
-        source = body["source"]
-        translation = body["translation"]
-        language = body["language"]
-        temperature = body["temperature"]  # TODO: Currently not passed by app...
-        llm_dict = body["llm"]
-        llm = llm_dict["value"]
+    #     model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'
+    #     body = json.loads(event["body"])
+    #     source = body["source"]
+    #     translation = body["translation"]
+    #     language = body["language"]
+    #     temperature = body["temperature"]  # TODO: Currently not passed by app...
+    #     llm_dict = body["llm"]
+    #     llm = llm_dict["value"]
 
-        system_prompt = get_system_prompt(llm, language)
+    #     system_prompt = get_system_prompt(llm, language)
 
-        logger.info(f'Source: {source}')
-        logger.info(f'Translation: {translation}')
-        logger.info(f"LLM: {llm}")
+    #     logger.info(f'Source: {source}')
+    #     logger.info(f'Translation: {translation}')
+    #     logger.info(f"LLM: {llm}")
 
-        logger.info(f'System Prompt:\n{system_prompt}')
+    #     logger.info(f'System Prompt:\n{system_prompt}')
 
-        user_message =  {"role": "user", "content": get_user_prompt(source, translation, language, llm)}
-        messages = [user_message]
+    #     user_message =  {"role": "user", "content": get_user_prompt(source, translation, language, llm)}
+    #     messages = [user_message]
 
-        model_id, model_kwargs = get_call_body(system_prompt, messages, llm, temperature)
-        response = generate_message(BEDROCK_RUNTIME, model_id, model_kwargs)
+    #     model_id, model_kwargs = get_call_body(system_prompt, messages, llm, temperature)
+    #     response = generate_message(BEDROCK_RUNTIME, model_id, model_kwargs)
 
-        output = ""
-        logger.info(f'Bedrock Full Response: {response}')
-        if llm == 'claude3': 
-            output = json.dumps(response['content'][0]["text"])
-        elif llm == 'llama2':
-            clean_gen = response['generation'][response['generation'].find("{"):(response['generation'].rfind("}")+1)]
-            output = json.dumps(clean_gen)
+    #     output = ""
+    #     logger.info(f'Bedrock Full Response: {response}')
+    #     if llm == 'claude3': 
+    #         output = json.dumps(response['content'][0]["text"])
+    #     elif llm == 'llama2':
+    #         clean_gen = response['generation'][response['generation'].find("{"):(response['generation'].rfind("}")+1)]
+    #         output = json.dumps(clean_gen)
 
-        print(f'Bedrock Response: {output}')
-        return {"statusCode": 200, 
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "*",
-                    "Content-Type": "application/json"
-                },
-                "body": output} 
+    #     print(f'Bedrock Response: {output}')
+    #     return {"statusCode": 200, 
+    #             "headers": {
+    #                 "Access-Control-Allow-Origin": "*",
+    #                 "Access-Control-Allow-Headers": "*",
+    #                 "Access-Control-Allow-Methods": "*",
+    #                 "Content-Type": "application/json"
+    #             },
+    #             "body": output} 
 
-    except Exception as e:
-        print(e)
-        return {"statusCode": 500, 
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "*",
-                    "Content-Type": "application/json"
-                },
-                "body": e}
+    # except Exception as e:
+    #     print(e)
+    #     return {"statusCode": 500, 
+    #             "headers": {
+    #                 "Access-Control-Allow-Origin": "*",
+    #                 "Access-Control-Allow-Headers": "*",
+    #                 "Access-Control-Allow-Methods": "*",
+    #                 "Content-Type": "application/json"
+    #             },
+    #             "body": e}
