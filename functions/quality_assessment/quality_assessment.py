@@ -12,8 +12,7 @@ from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
 from aws_lambda_powertools.logging import correlation_paths
 from aws_lambda_powertools.utilities.typing import LambdaContext
-# logger = logging.getLogger()
-# logger.setLevel(os.getenv("LogLevel", logging.INFO))
+
 
 tracer = Tracer()
 logger = Logger()
@@ -155,7 +154,7 @@ def generate_message(bedrock_runtime: boto3.client,
 
 @app.get("/get-all-prompts")
 @tracer.capture_method
-def get_all_prompts() -> list[dict]:
+def get_all_prompts() -> dict:
 
     """
     A function to retrieve the list of stored prompts from DynamoDB
@@ -174,9 +173,62 @@ def get_all_prompts() -> list[dict]:
     return {"prompts": prompt_output_list}
 
 
+@app.post("/evaluate-translation")
+@tracer.capture_method
+def evaluate_translation() -> dict:
+    print("Evaluating translation")
+    body: dict = app.current_event.json_body
+    try:
+        print(f"Event: {body}")
+        # body = json.loads(translation_data)        
+        source = body["source"]
+        translation = body["translation"]
+        language = body["language"]
+        temperature = body["temperature"]
+        llm_dict = body["llm"]
+        llm = llm_dict["value"]
+
+        system_prompt = get_system_prompt(llm, language)
+
+        logger.info(f'Source: {source}')
+        logger.info(f'Translation: {translation}')
+        logger.info(f"LLM: {llm}")
+
+        logger.info(f'System Prompt:\n{system_prompt}')
+
+        user_message =  {"role": "user", "content": get_user_prompt(source, translation, language, llm)}
+        messages = [user_message]
+
+        model_id, model_kwargs = get_call_body(system_prompt, messages, llm, temperature)
+        response = generate_message(BEDROCK_RUNTIME, model_id, model_kwargs)
+
+        output = ""
+        logger.info(f'Bedrock Full Response: {response}')
+        if llm == 'claude3': 
+            output = json.dumps(response['content'][0]["text"])
+        elif llm == 'llama2':
+            clean_gen = response['generation'][response['generation'].find("{"):(response['generation'].rfind("}")+1)]
+            output = json.dumps(clean_gen)
+
+        logging.info(f'Bedrock Response: {output}')
+        return output
+
+    except Exception as e:
+        logging.error(e)
+        return {"statusCode": 500, 
+                "headers": {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Methods": "*",
+                    "Content-Type": "application/json"
+                },
+                "body": e}
+
+
 @logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_REST)
 @tracer.capture_lambda_handler
-def lambda_handler(event, context):
+def lambda_handler(event: dict, context: LambdaContext):
+    logging.info(f"Event: {event}")
     return app.resolve(event, context)
 
 

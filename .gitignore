@@ -3,3 +3,4 @@ samconfig.toml
 .venv/*
 .aws-sam/*
 .vscode/*
+ui/src/aws-exports.js
