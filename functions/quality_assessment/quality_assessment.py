@@ -93,7 +93,7 @@ def get_system_prompt(model_choice: str = 'claude',
     elif model_choice == 'llama2':
         prompt_id = f"llama2-english-{language}"
 
-    logger.info(f"Retrieving Prompt ID: {prompt_id}")  # TODO: Exception handling required
+    logger.info(f"Retrieving Prompt ID: {prompt_id}") 
     dynamo_item = DYNAMO_CLIENT.get_item(TableName=TABLE_NAME, Key={'prompt-id': {'S': prompt_id}})
     return dynamo_item["Item"]["prompt"]["S"]
 
@@ -155,9 +155,14 @@ def generate_message(bedrock_runtime: boto3.client,
 @app.post("/update-prompt")
 @tracer.capture_method
 def update_prompt() -> dict:
-    print("Updating prompt")
+    """
+    A function to take in a prompt and prompt-id and update that prompt in the DynamoDB table
+
+    :returns: A simple status code dictionary
+    :raises Exception: raises an Exception if the DynamoDB write fails
+    """
+
     body = app.current_event.json_body
-    print(body)
     try:
         prompt_id = body["promptView"]["label"]
         prompt_text = body["promptView"]["value"]
@@ -181,7 +186,7 @@ def get_all_prompts() -> dict:
     """
     A function to retrieve the list of stored prompts from DynamoDB
 
-    :returns: A list of dictionaries containing the prompt id and prompt text
+    :returns: A dictionary containing a list of objects containing the prompt id and prompt text
     """
 
     logger.info(f"Retrieving prompt list from {TABLE_NAME}")
@@ -198,11 +203,16 @@ def get_all_prompts() -> dict:
 @app.post("/evaluate-translation")
 @tracer.capture_method
 def evaluate_translation() -> dict:
-    print("Evaluating translation")
+
+    """
+    A function to evaluate the quality of a translation by passing it to an LLM and retrieving an assessment
+
+    :returns: A dictionary containing the generated assessment
+    """
+    logging.info("Evaluating translation")
     body = app.current_event.json_body
     try:
-        print(f"Event: {body}")
-        # body = json.loads(translation_data)        
+        logging.info(f"Event: {body}")
         source = body["source"]
         translation = body["translation"]
         language = body["language"]
