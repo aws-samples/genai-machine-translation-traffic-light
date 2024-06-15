@@ -30,8 +30,8 @@ Amplify.configure(awsExports);
 
 const App = ({ signOut }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [source, setSource] = useState("16 Penn State in which redshirt freshman Jim Kelly threw for 280 yards and three touchdowns in his first career start as Miami's quarterback.");
-  const [translation, setTranslation] = useState("16 Penn State, in dem Rothemd-Neuling Jim Kelly warf 280 Meter und drei Touchdowns in seiner ersten Karriere starten als Miami Quartier zurück.");
+  const [source, setSource] = useState("");
+  const [translation, setTranslation] = useState("");
   const [llm, setLLM] = useState({label: "Claude 3 Sonnet", value: "claude3" });
   const [temperature, setTemp] = useState(0);
   const [visible, setVisible] = useState(false);
