@@ -14,7 +14,7 @@ To deploy this application we need an AWS account with access to Bedrock specifi
 
 1. Log in to the AWS Console for the account you will be using. 
 
-1. [Switch to a region that Bedrock is available in](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
+1. Switch to the region that you want to deploy to. First check if [Bedrock is available in that region](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html) and that the models you will be using are also available (Claude 3 Sonnet and Llama2 Chat 70B by default)
 
 1. Navigate to Bedrock on the console and from the drop down menu go to `Model access`
 
