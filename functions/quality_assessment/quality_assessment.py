@@ -8,9 +8,16 @@ import os
 import boto3
 from botocore.config import Config
 
+from aws_lambda_powertools import Logger, Tracer
+from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
+from aws_lambda_powertools.logging import correlation_paths
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
-logger = logging.getLogger()
-logger.setLevel(os.getenv("LogLevel", logging.INFO))
+
+tracer = Tracer()
+logger = Logger()
+cors_config = CORSConfig(allow_origin="*", allow_headers=["x-test"], max_age=300)
+app = APIGatewayRestResolver(cors=cors_config)
 
 BEDROCK_RUNTIME = boto3.client('bedrock-runtime')
 DYNAMO_CLIENT = boto3.client('dynamodb')
@@ -86,7 +93,7 @@ def get_system_prompt(model_choice: str = 'claude',
     elif model_choice == 'llama2':
         prompt_id = f"llama2-english-{language}"
 
-    logger.info(f"Retrieving Prompt ID: {prompt_id}")  # TODO: Exception handling required
+    logger.info(f"Retrieving Prompt ID: {prompt_id}") 
     dynamo_item = DYNAMO_CLIENT.get_item(TableName=TABLE_NAME, Key={'prompt-id': {'S': prompt_id}})
     return dynamo_item["Item"]["prompt"]["S"]
 
@@ -145,12 +152,41 @@ def generate_message(bedrock_runtime: boto3.client,
     return response_body
 
 
-def get_prompt_list() -> list[dict]:
+@app.post("/update-prompt")
+@tracer.capture_method
+def update_prompt() -> dict:
+    """
+    A function to take in a prompt and prompt-id and update that prompt in the DynamoDB table
+
+    :returns: A simple status code dictionary
+    :raises Exception: raises an Exception if the DynamoDB write fails
+    """
+
+    body = app.current_event.json_body
+    try:
+        prompt_id = body["promptView"]["label"]
+        prompt_text = body["promptView"]["value"]
+
+        DYNAMO_CLIENT.put_item(TableName=TABLE_NAME,
+                                Item={
+                                    'prompt-id': {'S': prompt_id},
+                                    'prompt': {'S': prompt_text}
+                                })
+
+        return {"statusCode": 200}
+    except Exception as e:
+        logging.error(e)
+        return {"statusCode": 500, 
+                "body": e}
+
+@app.get("/get-all-prompts")
+@tracer.capture_method
+def get_all_prompts() -> dict:
 
     """
     A function to retrieve the list of stored prompts from DynamoDB
 
-    :returns: A list of dictionaries containing the prompt id and prompt text
+    :returns: A dictionary containing a list of objects containing the prompt id and prompt text
     """
 
     logger.info(f"Retrieving prompt list from {TABLE_NAME}")
@@ -161,41 +197,26 @@ def get_prompt_list() -> list[dict]:
     for item in prompt_list:
         new_item = {"label": item["prompt-id"]["S"], "value": item["prompt"]["S"]}
         prompt_output_list.append(new_item)
-    return prompt_output_list
+    return {"prompts": prompt_output_list}
 
 
-def lambda_handler(event, context) -> dict:
+@app.post("/evaluate-translation")
+@tracer.capture_method
+def evaluate_translation() -> dict:
 
     """
-    The lambda handler function for the quality assessment lambda function
+    A function to evaluate the quality of a translation by passing it to an LLM and retrieving an assessment
 
-    :param event: A dictionary containing the event data
-    :param context: A dictionary containing the context data
-    
-    :returns: A dictionary containing the response data
+    :returns: A dictionary containing the generated assessment
     """
-
+    logging.info("Evaluating translation")
+    body = app.current_event.json_body
     try:
-        logging.info(f"Event: {event}")
-        if event["body"] is None:
-            prompt_output_list = get_prompt_list()
-
-            logger.info(f'Prompt List: {prompt_output_list}')
-            return {"statusCode": 200,  # TODO: Error handling
-                    "headers": {
-                        "Access-Control-Allow-Origin": "*",
-                        "Access-Control-Allow-Headers": "*",
-                        "Access-Control-Allow-Methods": "*",
-                        "Content-Type": "application/json"
-                    }, 
-                    "body": json.dumps({"items": prompt_output_list})}
-        
-        model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'
-        body = json.loads(event["body"])
+        logging.info(f"Event: {body}")
         source = body["source"]
         translation = body["translation"]
         language = body["language"]
-        temperature = body["temperature"]  # TODO: Currently not passed by app...
+        temperature = body["temperature"]
         llm_dict = body["llm"]
         llm = llm_dict["value"]
 
@@ -221,23 +242,17 @@ def lambda_handler(event, context) -> dict:
             clean_gen = response['generation'][response['generation'].find("{"):(response['generation'].rfind("}")+1)]
             output = json.dumps(clean_gen)
 
-        print(f'Bedrock Response: {output}')
-        return {"statusCode": 200, 
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "*",
-                    "Content-Type": "application/json"
-                },
-                "body": output} 
+        logging.info(f'Bedrock Response: {output}')
+        return output
 
     except Exception as e:
-        print(e)
-        return {"statusCode": 500, 
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "*",
-                    "Content-Type": "application/json"
-                },
+        logging.error(e)
+        return {"statusCode": 500,
                 "body": e}
+
+
+@logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_REST)
+@tracer.capture_lambda_handler
+def lambda_handler(event: dict, context: LambdaContext):
+    logging.info(f"Event: {event}")
+    return app.resolve(event, context)
