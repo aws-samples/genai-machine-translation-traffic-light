@@ -1,6 +1,6 @@
 # Translation Quality Assessment Using LLMs
 
-This repository contains a code sample to deploy an application that can perform quality assessment of translated sentences from some common language pairs. The application takes a source sentence and it's translated counterpart and uses a Large Language Model to perform some quality assessment and provide a RED, AMBER or GREEN rating. The application will also render the LLM's reasoning as well as a list of errors it identifies. 
+This repository contains a code sample to deploy an application that can perform quality assessment of translated sentences from some common language pairs. The application takes a source sentence and its translated counterpart and uses a Large Language Model to perform some quality assessment and provide a RED, AMBER or GREEN rating. The application will also render the LLM's reasoning as well as a list of errors it identifies. 
 
 The intended use of this application is to assess the quality of machine translated models for common language pairs where a GREEN rating needs no human intervention. An AMBER rating requires some corrections but the intent of the sentence is maintained in the translation. A RED rating identifies poor quality translations that are not usable or change the meaning of the source sentence. 
 
